@@ -9,6 +9,7 @@ export default {
   },
   applicationInsights: {
     connectionString: process.env.APPLICATIONINSIGHTS_CONNECTION_STRING,
+    authenticationString: process.env.APPLICATIONINSIGHTS_AUTHENTICATION_STRING,
   },
 
   /**

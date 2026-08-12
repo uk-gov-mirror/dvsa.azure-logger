@@ -228,6 +228,7 @@ class Logger implements ILogger {
       transports.push(
         new ApplicationInsightsTransport({
           connectionString: config.applicationInsights.connectionString,
+          authenticationString: config.applicationInsights.authenticationString,
           componentName: this.componentName,
           level: config.logs.level,
         }),

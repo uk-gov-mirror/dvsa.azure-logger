@@ -32,6 +32,8 @@ LOG_LEVEL=event
 NODE_ENV=development
 
 APPLICATIONINSIGHTS_CONNECTION_STRING={APPLICATION_INSIGHTS_CONNECTION_STRING}
+
+APPLICATIONINSIGHTS_AUTHENTICATION_STRING={APPLICATION_INSIGHTS_AUTHENTICATION_STRING}
 ```
 ## Example Use:
 
@@ -77,3 +79,9 @@ function getData(): void {
 When using an Azure function app the following environment variable must be present and contain the connection string for the application insights instance you wish to use.
   
 APPLICATIONINSIGHTS_CONNECTION_STRING
+
+## APPLICATIONINSIGHTS_AUTHENTICATION_STRING
+
+Optionally set this environment variable to pass an Application Insights authentication string through the logger configuration.
+
+APPLICATIONINSIGHTS_AUTHENTICATION_STRING

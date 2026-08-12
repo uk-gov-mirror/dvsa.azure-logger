@@ -12,6 +12,7 @@ jest.mock('../../src/config', () => ({
   },
   applicationInsights: {
     connectionString: '123-456-789',
+    authenticationString: 'Authorization=AAD',
   },
 }));
 
@@ -58,6 +59,7 @@ describe('Logger', () => {
       expect(ApplicationInsightsTransport).toHaveBeenCalledWith({
         level: 'DEBUG',
         connectionString: '123-456-789',
+        authenticationString: 'Authorization=AAD',
         componentName: 'azure-logger',
       });
     });

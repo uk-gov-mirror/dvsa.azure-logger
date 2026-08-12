@@ -222,8 +222,11 @@ class Logger implements ILogger {
         }),
       );
     } else {
-      if (!config.applicationInsights.connectionString) {
-        throw new Error('No Application Insights Connection String provided in APPLICATIONINSIGHTS_CONNECTION_STRING');
+      if (
+        !config.applicationInsights.connectionString
+        && !config.applicationInsights.authenticationString
+      ) {
+        throw new Error('No Application Insights configuration provided in APPLICATIONINSIGHTS_CONNECTION_STRING or APPLICATIONINSIGHTS_AUTHENTICATION_STRING');
       }
       transports.push(
         new ApplicationInsightsTransport({

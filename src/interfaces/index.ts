@@ -3,7 +3,7 @@ import Transport from 'winston-transport';
 import { LOG_LEVELS } from '../enums';
 
 export interface ApplicationInsightsTransportOptions extends Transport.TransportStreamOptions {
-  connectionString: string;
+  connectionString?: string;
   authenticationString?: string;
   componentName: string;
 }

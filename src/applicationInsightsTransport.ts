@@ -27,6 +27,35 @@ import { dropAADLogsTelemetryProcessor } from './dropAADLogsTelemetryProcessor';
 class ApplicationInsightsTransport extends Transport {
   client: TelemetryClient;
 
+  private static resolveSetupString(
+    connectionString?: string,
+    authenticationString?: string,
+  ): string {
+    const trimmedConnectionString = connectionString?.trim();
+    const trimmedAuthenticationString = authenticationString?.trim();
+
+    if (trimmedAuthenticationString) {
+      const authStringContainsConnectionConfig =
+        /(InstrumentationKey|IngestionEndpoint|EndpointSuffix)=/i.test(trimmedAuthenticationString);
+
+      if (authStringContainsConnectionConfig) {
+        return trimmedAuthenticationString;
+      }
+
+      if (trimmedConnectionString) {
+        return `${trimmedConnectionString};${trimmedAuthenticationString}`;
+      }
+
+      return trimmedAuthenticationString;
+    }
+
+    if (trimmedConnectionString) {
+      return trimmedConnectionString;
+    }
+
+    throw new Error('No Application Insights Connection String or Authentication String provided');
+  }
+
   logLevelsMap = {
     [LOG_LEVELS.AUDIT]: APP_INSIGHTS_LOG_LEVELS.TRACE,
     [LOG_LEVELS.CRITICAL]: APP_INSIGHTS_LOG_LEVELS.TRACE,
@@ -57,9 +86,10 @@ class ApplicationInsightsTransport extends Transport {
 
   constructor(options: ApplicationInsightsTransportOptions) {
     super();
-    const applicationInsightsConnectionString = options.authenticationString
-      ? `${options.connectionString};${options.authenticationString}`
-      : options.connectionString;
+    const applicationInsightsConnectionString = ApplicationInsightsTransport.resolveSetupString(
+      options.connectionString,
+      options.authenticationString,
+    );
 
     setup(applicationInsightsConnectionString)
       .setAutoDependencyCorrelation(true)

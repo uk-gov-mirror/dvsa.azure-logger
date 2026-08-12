@@ -87,6 +87,23 @@ describe('ApplicationInsightsTransport', () => {
       // Assert
       expect(setup).toHaveBeenCalledWith(`${connectionString};${authenticationString}`);
     });
+
+    test('should prioritize authentication string when it already includes connection configuration', () => {
+      // Arrange
+      const connectionString = 'legacy-connection-string';
+      const authenticationString = 'InstrumentationKey=00000000-0000-0000-0000-000000000000;IngestionEndpoint=https://uksouth-0.in.applicationinsights.azure.com/;Authorization=AAD';
+      const componentName = 'azure-logger';
+
+      // Act
+      new ApplicationInsightsTransport({
+        connectionString,
+        authenticationString,
+        componentName,
+      });
+
+      // Assert
+      expect(setup).toHaveBeenCalledWith(authenticationString);
+    });
   });
 
   describe('log', () => {

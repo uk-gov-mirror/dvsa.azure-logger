@@ -70,6 +70,23 @@ describe('ApplicationInsightsTransport', () => {
       expect(setup).toHaveBeenCalledWith(connectionString);
       expect(result.client.context.tags.cloudRole).toEqual(componentName);
     });
+
+    test('should include authentication string in setup connection string when provided', () => {
+      // Arrange
+      const connectionString = 'dummy-string';
+      const authenticationString = 'Authorization=AAD';
+      const componentName = 'azure-logger';
+
+      // Act
+      new ApplicationInsightsTransport({
+        connectionString,
+        authenticationString,
+        componentName,
+      });
+
+      // Assert
+      expect(setup).toHaveBeenCalledWith(`${connectionString};${authenticationString}`);
+    });
   });
 
   describe('log', () => {

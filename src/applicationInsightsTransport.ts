@@ -57,7 +57,11 @@ class ApplicationInsightsTransport extends Transport {
 
   constructor(options: ApplicationInsightsTransportOptions) {
     super();
-    setup(options.connectionString)
+    const applicationInsightsConnectionString = options.authenticationString
+      ? `${options.connectionString};${options.authenticationString}`
+      : options.connectionString;
+
+    setup(applicationInsightsConnectionString)
       .setAutoDependencyCorrelation(true)
       .setAutoCollectRequests(true)
       .setAutoCollectPerformance(true, true)

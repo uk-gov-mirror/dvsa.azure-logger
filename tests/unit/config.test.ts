@@ -7,11 +7,19 @@ const loadConfig = () => {
   return require('../../src/config').default;
 };
 
+const restoreEnvVar = (key: string, value: string | undefined) => {
+  if (value === undefined) {
+    delete process.env[key];
+  } else {
+    process.env[key] = value;
+  }
+};
+
 describe('config', () => {
   afterEach(() => {
-    process.env.NODE_ENV = originalNodeEnv;
-    process.env.APPLICATIONINSIGHTS_CONNECTION_STRING = originalConnectionString;
-    process.env.APPLICATIONINSIGHTS_AUTHENTICATION_STRING = originalAuthenticationString;
+    restoreEnvVar('NODE_ENV', originalNodeEnv);
+    restoreEnvVar('APPLICATIONINSIGHTS_CONNECTION_STRING', originalConnectionString);
+    restoreEnvVar('APPLICATIONINSIGHTS_AUTHENTICATION_STRING', originalAuthenticationString);
   });
 
   test('allows an authentication string without a connection string', () => {
@@ -39,6 +47,6 @@ describe('config', () => {
     delete process.env.APPLICATIONINSIGHTS_AUTHENTICATION_STRING;
     process.env.NODE_ENV = 'production';
 
-    expect(loadConfig).toThrow('Required application insights connection string is missing');
+    expect(loadConfig).toThrow(/application insights connection string or authentication string is missing/);
   });
 });

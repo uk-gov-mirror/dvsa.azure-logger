@@ -85,7 +85,7 @@ class ApplicationInsightsTransport extends Transport {
   };
 
   constructor(options: ApplicationInsightsTransportOptions) {
-    super();
+    super(options);
     const applicationInsightsConnectionString = ApplicationInsightsTransport.resolveSetupString(
       options.connectionString,
       options.authenticationString,

@@ -5,7 +5,7 @@ if (
   && !process.env.APPLICATIONINSIGHTS_CONNECTION_STRING
   && !process.env.APPLICATIONINSIGHTS_AUTHENTICATION_STRING
 ) {
-  throw new Error('Required application insights connection string is missing');
+  throw new Error('Required application insights connection string or authentication string is missing');
 }
 
 export default {

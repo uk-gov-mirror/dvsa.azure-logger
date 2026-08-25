@@ -221,25 +221,30 @@ class Logger implements ILogger {
           level: config.logs.level,
         }),
       );
-    } else {
-      if (
-        !config.applicationInsights.connectionString
-        && !config.applicationInsights.authenticationString
-      ) {
-        throw new Error('No Application Insights configuration provided in APPLICATIONINSIGHTS_CONNECTION_STRING or APPLICATIONINSIGHTS_AUTHENTICATION_STRING');
-      }
-      transports.push(
-        new ApplicationInsightsTransport({
-          connectionString: config.applicationInsights.connectionString,
-          authenticationString: config.applicationInsights.authenticationString,
-          componentName: this.componentName,
-          level: config.logs.level,
-        }),
 
+      return transports;
+    }
+
+    if (!config.applicationInsights.connectionString) {
+      throw new Error(
+        'APPLICATIONINSIGHTS_CONNECTION_STRING is required when Application Insights logging is enabled',
       );
     }
+
+    transports.push(
+      new ApplicationInsightsTransport({
+        connectionString:
+        config.applicationInsights.connectionString,
+        authenticationString:
+        config.applicationInsights.authenticationString,
+        componentName: this.componentName,
+        level: config.logs.level,
+      }),
+    );
+
     return transports;
   }
+
 }
 
 export default Logger;

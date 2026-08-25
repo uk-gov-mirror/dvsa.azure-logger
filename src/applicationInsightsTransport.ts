@@ -177,7 +177,7 @@ class ApplicationInsightsTransport extends Transport {
     );
 
     this.sendStartupTelemetry(
-      credential,
+      Boolean(credential),
       options.componentName,
     );
   }
@@ -331,85 +331,32 @@ class ApplicationInsightsTransport extends Transport {
     this.client.trackPageView(pageView);
   }
 
-  private async sendStartupTelemetry(
-    credential: TokenCredential | undefined,
+  private sendStartupTelemetry(
+    usingMicrosoftEntra: boolean,
     componentName: string,
-  ): Promise<void> {
-    const authenticationMode = credential
+  ): void {
+    const authenticationMode = usingMicrosoftEntra
       ? 'MicrosoftEntra'
       : 'ConnectionStringOnly';
 
-    try {
-      if (credential) {
-        await credential.getToken(
-          'https://monitor.azure.com/.default',
-        );
-      }
-
-      this.client.trackTrace({
-        message: credential
-          ? 'Application Insights configured using Microsoft Entra authentication'
-          : 'Application Insights configured using connection string authentication',
-        severity: SeverityLevel.Information,
-        properties: {
-          componentName,
-          authenticationMode,
-          source: '@dvsa/azure-logger',
-          startup: 'true',
-          tokenAcquired: String(Boolean(credential)),
-        },
-        tagOverrides: {
-          [this.client.context.keys.cloudRole]:
-          componentName,
-          [this.client.context.keys.operationName]:
-            `${componentName} startup`,
-        },
-      });
-
-      this.client.flush({
-        callback: (response) => {
-          console.log(
-            '[AzureLogger] Startup telemetry flush completed',
-            response,
-          );
-        },
-      });
-    } catch (error: unknown) {
-      const exception =
-        error instanceof Error
-          ? error
-          : new Error(String(error));
-
-      console.error(
-        '[AzureLogger] Microsoft Entra authentication failed',
-        exception,
-      );
-
-      this.client.trackException({
-        exception,
-        properties: {
-          componentName,
-          authenticationMode,
-          source: '@dvsa/azure-logger',
-          startup: 'true',
-        },
-        tagOverrides: {
-          [this.client.context.keys.cloudRole]:
-          componentName,
-          [this.client.context.keys.operationName]:
-            `${componentName} startup`,
-        },
-      });
-
-      this.client.flush({
-        callback: (response) => {
-          console.error(
-            '[AzureLogger] Startup exception telemetry flush completed',
-            response,
-          );
-        },
-      });
-    }
+    this.client.trackTrace({
+      message: usingMicrosoftEntra
+        ? 'Application Insights configured using Microsoft Entra authentication'
+        : 'Application Insights configured using connection string authentication',
+      severity: SeverityLevel.Information,
+      properties: {
+        componentName,
+        authenticationMode,
+        source: '@dvsa/azure-logger',
+        startup: 'true',
+      },
+      tagOverrides: {
+        [this.client.context.keys.cloudRole]:
+        componentName,
+        [this.client.context.keys.operationName]:
+          `${componentName} startup`,
+      },
+    });
   }
 }
 

@@ -31,7 +31,7 @@
   },
   "dependencies": {
     "@azure/functions": "4.13.0",
-    "@azure/identity": "^4.13.2",
+    "@azure/identity": "4.13.2",
     "applicationinsights": "2.9.8",
     "winston": "3.7.2",
     "winston-transport": "4.5.0"

@@ -82,6 +82,6 @@ APPLICATIONINSIGHTS_CONNECTION_STRING
 
 ## APPLICATIONINSIGHTS_AUTHENTICATION_STRING
 
-Set this to `Authorization=AAD` to enable Microsoft Entra (managed identity) authentication for Application Insights. You can also include `ClientId=<user-assigned-managed-identity-client-id>`. Any other value is ignored and logging falls back to connection string authentication.
+Set this to `Authorization=AAD` to enable Microsoft Entra (managed identity) authentication for Application Insights. You can also include `ClientId=<user-assigned-managed-identity-client-id>`. Unsupported values are rejected.
 
 APPLICATIONINSIGHTS_AUTHENTICATION_STRING

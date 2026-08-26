@@ -109,42 +109,36 @@ describe('ApplicationInsightsTransport', () => {
       });
     });
 
-    test('should fallback to connection string when authentication string is not AAD', () => {
+    test('should throw when authentication string is not AAD', () => {
       // Arrange
       const connectionString = 'dummy-string';
       const authenticationString = 'Authorization=ApiKey';
       const componentName = 'azure-logger';
 
-      // Act
-      const result = new ApplicationInsightsTransport({
+      // Assert
+      expect(() => new ApplicationInsightsTransport({
         connectionString,
         authenticationString,
         componentName,
-      });
-
-      // Assert
-      expect(setup).toHaveBeenCalledWith(connectionString);
-      expect(DefaultAzureCredential).not.toHaveBeenCalled();
-      expect(result.client.config.aadTokenCredential).toBeUndefined();
+      })).toThrow(
+        'Unsupported Application Insights authentication configuration. Expected Authorization=AAD',
+      );
     });
 
-    test('should fallback to connection string when authentication string is invalid', () => {
+    test('should throw when authentication string is invalid', () => {
       // Arrange
       const connectionString = 'dummy-string';
       const authenticationString = 'invalid-setting';
       const componentName = 'azure-logger';
 
-      // Act
-      const result = new ApplicationInsightsTransport({
+      // Assert
+      expect(() => new ApplicationInsightsTransport({
         connectionString,
         authenticationString,
         componentName,
-      });
-
-      // Assert
-      expect(setup).toHaveBeenCalledWith(connectionString);
-      expect(DefaultAzureCredential).not.toHaveBeenCalled();
-      expect(result.client.config.aadTokenCredential).toBeUndefined();
+      })).toThrow(
+        'Invalid Application Insights authentication setting: "invalid-setting"',
+      );
     });
   });
 

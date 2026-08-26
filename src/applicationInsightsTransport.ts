@@ -65,9 +65,7 @@ class ApplicationInsightsTransport extends Transport {
       const separatorIndex = trimmedEntry.indexOf('=');
 
       if (separatorIndex === -1) {
-        throw new Error(
-          `Invalid Application Insights authentication setting: "${trimmedEntry}"`,
-        );
+        return undefined;
       }
 
       const key = trimmedEntry
@@ -86,9 +84,7 @@ class ApplicationInsightsTransport extends Transport {
       authenticationProperties.get('authorization');
 
     if (authorization?.toLowerCase() !== 'aad') {
-      throw new Error(
-        'Unsupported Application Insights authentication configuration. Expected Authorization=AAD',
-      );
+      return undefined;
     }
 
     const managedIdentityClientId =

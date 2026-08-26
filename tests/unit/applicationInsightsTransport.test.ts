@@ -1,4 +1,4 @@
-import { setup } from 'applicationinsights';
+import { setup, defaultClient } from 'applicationinsights';
 import {
   TraceTelemetry,
   SeverityLevel,
@@ -7,6 +7,7 @@ import {
   DependencyTelemetry,
   RequestTelemetry,
 } from 'applicationinsights/out/Declarations/Contracts';
+import { DefaultAzureCredential } from '@azure/identity';
 import ApplicationInsightsTransport from '../../src/applicationInsightsTransport';
 import {
   ExceptionInfo,
@@ -19,7 +20,6 @@ import { LOG_LEVELS } from '../../src/enums';
 
 jest.mock('applicationinsights', () => ({
   setup: jest.fn().mockReturnValue({
-    start: () => { },
     setAutoDependencyCorrelation: jest.fn().mockReturnThis(),
     setAutoCollectRequests: jest.fn().mockReturnThis(),
     setAutoCollectPerformance: jest.fn().mockReturnThis(),
@@ -30,7 +30,9 @@ jest.mock('applicationinsights', () => ({
     setSendLiveMetrics: jest.fn().mockReturnThis(),
     setDistributedTracingMode: jest.fn().mockReturnThis(),
   }),
+  start: jest.fn(),
   defaultClient: {
+    config: {},
     context: {
       keys: {
         cloudRole: 'cloudRole',
@@ -55,8 +57,19 @@ jest.mock('applicationinsights', () => ({
   },
 }));
 
+jest.mock('@azure/identity', () => ({
+  DefaultAzureCredential: jest.fn().mockImplementation((options) => ({
+    options,
+  })),
+}));
+
 describe('ApplicationInsightsTransport', () => {
   describe('constructor', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+      delete (defaultClient.config as { aadTokenCredential?: unknown }).aadTokenCredential;
+    });
+
     test('should create a new app insights client', () => {
       // Arrange
       const connectionString = 'dummy-string';
@@ -71,38 +84,67 @@ describe('ApplicationInsightsTransport', () => {
       expect(result.client.context.tags.cloudRole).toEqual(componentName);
     });
 
-    test('should include authentication string in setup connection string when provided', () => {
+    test('should configure managed identity when authentication string is Authorization=AAD', () => {
       // Arrange
       const connectionString = 'dummy-string';
-      const authenticationString = 'Authorization=AAD';
+      const authenticationString = 'Authorization=AAD;ClientId=test-client-id';
       const componentName = 'azure-logger';
 
       // Act
-      new ApplicationInsightsTransport({
+      const result = new ApplicationInsightsTransport({
         connectionString,
         authenticationString,
         componentName,
       });
 
       // Assert
-      expect(setup).toHaveBeenCalledWith(`${connectionString};${authenticationString}`);
+      expect(setup).toHaveBeenCalledWith(connectionString);
+      expect(DefaultAzureCredential).toHaveBeenCalledWith({
+        managedIdentityClientId: 'test-client-id',
+      });
+      expect(result.client.config.aadTokenCredential).toEqual({
+        options: {
+          managedIdentityClientId: 'test-client-id',
+        },
+      });
     });
 
-    test('should prioritize authentication string when it already includes connection configuration', () => {
+    test('should fallback to connection string when authentication string is not AAD', () => {
       // Arrange
-      const connectionString = 'legacy-connection-string';
-      const authenticationString = 'InstrumentationKey=00000000-0000-0000-0000-000000000000;IngestionEndpoint=https://uksouth-0.in.applicationinsights.azure.com/;Authorization=AAD';
+      const connectionString = 'dummy-string';
+      const authenticationString = 'Authorization=ApiKey';
       const componentName = 'azure-logger';
 
       // Act
-      new ApplicationInsightsTransport({
+      const result = new ApplicationInsightsTransport({
         connectionString,
         authenticationString,
         componentName,
       });
 
       // Assert
-      expect(setup).toHaveBeenCalledWith(authenticationString);
+      expect(setup).toHaveBeenCalledWith(connectionString);
+      expect(DefaultAzureCredential).not.toHaveBeenCalled();
+      expect(result.client.config.aadTokenCredential).toBeUndefined();
+    });
+
+    test('should fallback to connection string when authentication string is invalid', () => {
+      // Arrange
+      const connectionString = 'dummy-string';
+      const authenticationString = 'invalid-setting';
+      const componentName = 'azure-logger';
+
+      // Act
+      const result = new ApplicationInsightsTransport({
+        connectionString,
+        authenticationString,
+        componentName,
+      });
+
+      // Assert
+      expect(setup).toHaveBeenCalledWith(connectionString);
+      expect(DefaultAzureCredential).not.toHaveBeenCalled();
+      expect(result.client.config.aadTokenCredential).toBeUndefined();
     });
   });
 
@@ -438,7 +480,7 @@ describe('ApplicationInsightsTransport', () => {
         success: true,
         optionalProp: 'optional',
       };
-      const expectedDependencyInput: DependencyTelemetry = {
+      const expectedDependencyInput = {
         dependencyTypeName: 'http',
         name: 'dependency',
         data: 'logged dependency',
@@ -466,15 +508,15 @@ describe('ApplicationInsightsTransport', () => {
         name: 'request',
         url: 'https://url.test',
         duration: 200,
-        resultCode: 200,
+        resultCode: '200',
         success: true,
         optionalProp: 'optional',
       };
-      const expectedRequestInput: RequestTelemetry = {
+      const expectedRequestInput = {
         name: 'request',
         url: 'https://url.test',
         duration: 200,
-        resultCode: 200,
+        resultCode: '200',
         success: true,
         tagOverrides: {
           'ai.operation.id': operationId,

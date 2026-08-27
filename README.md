@@ -77,7 +77,7 @@ function getData(): void {
 ## APPLICATIONINSIGHTS_CONNECTION_STRING
 
 When using an Azure function app, set this environment variable to the connection string for the Application Insights instance you wish to use.
-  
+
 APPLICATIONINSIGHTS_CONNECTION_STRING
 
 ## APPLICATIONINSIGHTS_AUTHENTICATION_STRING

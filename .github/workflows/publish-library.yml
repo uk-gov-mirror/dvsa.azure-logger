@@ -1,0 +1,33 @@
+name: Publish Library
+on:
+  push:
+    tags:
+      - '*-v*'
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.4.0
+
+      - uses: actions/setup-node@v4.4.0
+        with:
+          node-version: 18
+
+      - name: Install (runs build via post install)
+        run: npm ci
+
+      - name: Test
+        run: npm test
+
+      - name: Verify tag matches package version
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          TAG_VERSION=${GITHUB_REF#refs/tag/v}
+          test "$PKG_VERSION" = "${TAG_VERSION}"
+
+      - name: Publish (dry run until NPM token exists)
+        run: npm publish --dry-run

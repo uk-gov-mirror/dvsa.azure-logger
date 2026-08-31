@@ -13,6 +13,9 @@
     "lint": "eslint --ext .js,.ts .",
     "lint:fix": "eslint --fix --ext .js,.ts ."
   },
+  "publishConfig": {
+    "registry": "https://pkgs.dev.azure.com/DvsaDev/_packaging/DSP/npm/registry/"
+  },
   "author": "DVSA",
   "license": "MIT",
   "repository": "github:dvsa/azure-logger",

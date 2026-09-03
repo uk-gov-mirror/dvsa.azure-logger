@@ -1,31 +1,104 @@
+import * as applicationInsights from 'applicationinsights';
 import {
-  setup,
-  defaultClient,
-  TelemetryClient,
   DistributedTracingModes,
+  TelemetryClient,
 } from 'applicationinsights';
 import {
-  SeverityLevel,
   EventTelemetry,
   ExceptionTelemetry,
+  SeverityLevel,
 } from 'applicationinsights/out/Declarations/Contracts';
+import {
+  DefaultAzureCredential,
+  type TokenCredential,
+} from '@azure/identity';
 import Transport from 'winston-transport';
 
 import {
   ApplicationInsightsTransportOptions,
-  LogInfo,
-  EventInfo,
-  TraceInfo,
-  ExceptionInfo,
   DependencyInfo,
-  RequestInfo,
+  EventInfo,
+  ExceptionInfo,
+  LogInfo,
   PageViewInfo,
+  RequestInfo,
+  TraceInfo,
 } from './interfaces';
-import { LOG_LEVELS, APP_INSIGHTS_LOG_LEVELS } from './enums';
+import { APP_INSIGHTS_LOG_LEVELS, LOG_LEVELS } from './enums';
 import { dropAADLogsTelemetryProcessor } from './dropAADLogsTelemetryProcessor';
 
 class ApplicationInsightsTransport extends Transport {
   client: TelemetryClient;
+
+  private static resolveConnectionString(
+    connectionString?: string,
+  ): string {
+    const trimmedConnectionString = connectionString?.trim();
+
+    if (!trimmedConnectionString) {
+      throw new Error(
+        'APPLICATIONINSIGHTS_CONNECTION_STRING is required to identify the Application Insights resource',
+      );
+    }
+
+    return trimmedConnectionString;
+  }
+
+  private static resolveCredential(
+    authenticationString?: string,
+  ): TokenCredential | undefined {
+    const trimmedAuthenticationString = authenticationString?.trim();
+
+    if (!trimmedAuthenticationString) {
+      return undefined;
+    }
+
+    const authenticationProperties = new Map<string, string>();
+
+    for (const entry of trimmedAuthenticationString.split(';')) {
+      const trimmedEntry = entry.trim();
+
+      if (!trimmedEntry) {
+        continue;
+      }
+
+      const separatorIndex = trimmedEntry.indexOf('=');
+
+      if (separatorIndex === -1) {
+        throw new Error(
+          `Invalid Application Insights authentication setting: "${trimmedEntry}"`,
+        );
+      }
+
+      const key = trimmedEntry
+        .slice(0, separatorIndex)
+        .trim()
+        .toLowerCase();
+
+      const value = trimmedEntry
+        .slice(separatorIndex + 1)
+        .trim();
+
+      authenticationProperties.set(key, value);
+    }
+
+    const authorization =
+      authenticationProperties.get('authorization');
+
+    if (authorization?.toLowerCase() !== 'aad') {
+      throw new Error(
+        'Unsupported Application Insights authentication configuration. Expected Authorization=AAD',
+      );
+    }
+
+    const managedIdentityClientId =
+      authenticationProperties.get('clientid');
+
+    return new DefaultAzureCredential({
+      managedIdentityClientId:
+        managedIdentityClientId || undefined,
+    });
+  }
 
   logLevelsMap = {
     [LOG_LEVELS.AUDIT]: APP_INSIGHTS_LOG_LEVELS.TRACE,
@@ -56,8 +129,20 @@ class ApplicationInsightsTransport extends Transport {
   };
 
   constructor(options: ApplicationInsightsTransportOptions) {
-    super();
-    setup(options.connectionString)
+    super(options);
+
+    const connectionString =
+      ApplicationInsightsTransport.resolveConnectionString(
+        options.connectionString,
+      );
+
+    const credential =
+      ApplicationInsightsTransport.resolveCredential(
+        options.authenticationString,
+      );
+
+    applicationInsights
+      .setup(connectionString)
       .setAutoDependencyCorrelation(true)
       .setAutoCollectRequests(true)
       .setAutoCollectPerformance(true, true)
@@ -66,17 +151,36 @@ class ApplicationInsightsTransport extends Transport {
       .setAutoCollectConsole(true, true)
       .setUseDiskRetryCaching(true)
       .setSendLiveMetrics(false)
-      .setDistributedTracingMode(DistributedTracingModes.AI_AND_W3C)
-      .start();
+      .setDistributedTracingMode(
+        DistributedTracingModes.AI_AND_W3C,
+      );
 
-    defaultClient.addTelemetryProcessor(dropAADLogsTelemetryProcessor);
-    this.client = defaultClient;
-    this.client.context.tags[this.client.context.keys.cloudRole] = options.componentName;
+    if (credential) {
+      applicationInsights.defaultClient.config.aadTokenCredential =
+        credential;
+    }
+
+    applicationInsights.start();
+
+    this.client = applicationInsights.defaultClient;
+
+    this.client.context.tags[
+      this.client.context.keys.cloudRole
+      ] = options.componentName;
+
     this.client.context.tags['X-Azure-Ref'] = '';
     this.client.context.tags['INCAP-REQ-ID'] = '';
     this.client.context.tags['Incap-Ses'] = '';
-  }
 
+    this.client.addTelemetryProcessor(
+      dropAADLogsTelemetryProcessor,
+    );
+
+    this.sendStartupTelemetry(
+      Boolean(credential),
+      options.componentName,
+    );
+  }
   log(info: LogInfo, callback: Function): void {
     switch (this.logLevelsMap[info.level]) {
       case APP_INSIGHTS_LOG_LEVELS.EVENT:
@@ -225,6 +329,34 @@ class ApplicationInsightsTransport extends Transport {
     };
 
     this.client.trackPageView(pageView);
+  }
+
+  private sendStartupTelemetry(
+    usingMicrosoftEntra: boolean,
+    componentName: string,
+  ): void {
+    const authenticationMode = usingMicrosoftEntra
+      ? 'MicrosoftEntra'
+      : 'ConnectionStringOnly';
+
+    this.client.trackTrace({
+      message: usingMicrosoftEntra
+        ? 'Application Insights configured using Microsoft Entra authentication'
+        : 'Application Insights configured using connection string authentication',
+      severity: SeverityLevel.Information,
+      properties: {
+        componentName,
+        authenticationMode,
+        source: '@dvsa/azure-logger',
+        startup: 'true',
+      },
+      tagOverrides: {
+        [this.client.context.keys.cloudRole]:
+        componentName,
+        [this.client.context.keys.operationName]:
+          `${componentName} startup`,
+      },
+    });
   }
 }
 

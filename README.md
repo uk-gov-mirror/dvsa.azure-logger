@@ -32,6 +32,8 @@ LOG_LEVEL=event
 NODE_ENV=development
 
 APPLICATIONINSIGHTS_CONNECTION_STRING={APPLICATION_INSIGHTS_CONNECTION_STRING}
+
+APPLICATIONINSIGHTS_AUTHENTICATION_STRING={APPLICATION_INSIGHTS_AUTHENTICATION_STRING}
 ```
 ## Example Use:
 
@@ -74,6 +76,12 @@ function getData(): void {
 
 ## APPLICATIONINSIGHTS_CONNECTION_STRING
 
-When using an Azure function app the following environment variable must be present and contain the connection string for the application insights instance you wish to use.
-  
+When using an Azure function app, set this environment variable to the connection string for the Application Insights instance you wish to use.
+
 APPLICATIONINSIGHTS_CONNECTION_STRING
+
+## APPLICATIONINSIGHTS_AUTHENTICATION_STRING
+
+Set this to `Authorization=AAD` to enable Microsoft Entra (managed identity) authentication for Application Insights. You can also include `ClientId=<user-assigned-managed-identity-client-id>`. Unsupported values are rejected.
+
+APPLICATIONINSIGHTS_AUTHENTICATION_STRING
